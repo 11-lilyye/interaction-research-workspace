@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 node_modules.bad-delete-*
+.node_modules.bad-delete-*
 dist
 dist-ssr
 *.local
