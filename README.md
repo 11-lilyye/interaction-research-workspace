@@ -16,6 +16,8 @@ GitHub Pages: https://11-lilyye.github.io/interaction-research-workspace/
 
 <img src="docs/media/overview-preview.png" alt="Interaction Research Workspace overview" width="900">
 
+[Watch the demo video](docs/media/demo.mp4)
+
 ## Screenshots
 
 ### Project Mission Control
