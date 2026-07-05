@@ -16,7 +16,9 @@ GitHub Pages: https://11-lilyye.github.io/interaction-research-workspace/
 
 ### Project Mission Control
 
-![Overview dashboard](docs/media/overview.png)
+<img src="docs/media/overview-preview.png" alt="Overview dashboard" width="900">
+
+[Open full-size overview screenshot](docs/media/overview.png)
 
 ### Excalidraw Canvas
 
