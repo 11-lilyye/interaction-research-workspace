@@ -16,7 +16,7 @@ GitHub Pages: https://11-lilyye.github.io/interaction-research-workspace/
 
 <img src="docs/media/overview-preview.png" alt="Interaction Research Workspace overview" width="900">
 
-[Watch the demo video](docs/media/demo.mp4)
+[Watch the demo video online](https://github.com/11-lilyye/interaction-research-workspace/blob/main/docs/media/demo.mp4)
 
 ## Screenshots
 
