@@ -16,16 +16,6 @@ GitHub Pages: https://11-lilyye.github.io/interaction-research-workspace/
 
 ![Interaction Research Workspace demo](docs/media/demo.gif)
 
-[Open the MP4 version](https://github.com/11-lilyye/interaction-research-workspace/blob/main/docs/media/demo.mp4)
-
-## Screenshots
-
-### Project Mission Control
-
-<img src="docs/media/overview-preview.png" alt="Overview dashboard" width="900">
-
-[Open full-size overview screenshot](docs/media/overview.png)
-
 ## What works in this version
 
 - Project Mission Control: track stage, biggest question, daily tasks, completed tasks, recent boards, and open-source tools.
