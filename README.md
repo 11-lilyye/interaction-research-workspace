@@ -2,6 +2,30 @@
 
 A local web MVP for collecting competitor UI screenshots, writing interaction analysis, and arranging reusable ideas on a canvas.
 
+## Demo
+
+Live site: https://interaction-research-workspace.netlify.app
+
+GitHub Pages: https://11-lilyye.github.io/interaction-research-workspace/
+
+![Interaction Research Workspace demo](docs/media/demo.gif)
+
+[Download the MP4 demo](docs/media/demo.mp4)
+
+## Screenshots
+
+### Project Mission Control
+
+![Overview dashboard](docs/media/overview.png)
+
+### Excalidraw Canvas
+
+![Canvas workspace](docs/media/canvas.png)
+
+### AI Partner and Libraries
+
+![Libraries panel](docs/media/libraries.png)
+
 ## What works in this version
 
 - Project rail with seeded research projects.
