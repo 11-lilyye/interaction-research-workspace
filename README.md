@@ -8,9 +8,7 @@ Live site: https://interaction-research-workspace.netlify.app
 
 GitHub Pages: https://11-lilyye.github.io/interaction-research-workspace/
 
-![Interaction Research Workspace demo](docs/media/demo.gif)
-
-[Download the MP4 demo](docs/media/demo.mp4)
+<img src="docs/media/overview-preview.png" alt="Interaction Research Workspace overview" width="900">
 
 ## Screenshots
 
