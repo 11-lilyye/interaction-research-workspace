@@ -8,6 +8,16 @@ The current version is frontend-only and works locally in the browser. Future ve
 
 当前版本是前端本地版，数据主要保存在浏览器里。后续可以接入 API，用来做截图分析、AI 建议、项目数据同步和更自动化的研究辅助。
 
+## MVP status / 当前状态
+
+This is an MVP version. It is currently designed for personal local use first: one builder, one browser, one evolving project studio.
+
+这是一个 MVP 版本。目前优先服务个人本地使用：一个创作者、一个浏览器、一个持续演进的项目工作室。
+
+The project is public because I want to keep improving it in the open. As my own workflow grows, the product will keep changing. I also hope other builders, indie developers, product managers, and people who need a similar research workspace can join the conversation and help shape it.
+
+这个项目公开出来，是因为我希望它可以边使用边迭代。随着我自己的项目工作流变化，它也会不断更新。我也希望更多同好、独立开发者、产品经理，或者需要类似工作台的人，可以一起讨论和构建。
+
 ## Demo
 
 Live site: https://interaction-research-workspace.netlify.app
@@ -55,6 +65,47 @@ Later API integrations can support:
 - AI 生成研究总结、设计冲突、任务建议和 Codex Prompt。
 - 通过 Supabase 等数据库做云端同步。
 - 团队共享、只读链接和长期项目数据保存。
+
+## Current limitations / 当前限制
+
+- Data is currently stored locally in the browser.
+- 当前数据主要保存在浏览器本地。
+- No real backend database is connected yet.
+- 暂时还没有接入真实后端数据库。
+- AI analysis is still a local/mock workflow.
+- AI 分析目前还是本地模拟流程。
+- Collaboration, accounts, permissions, and long-term cloud storage are future work.
+- 多人协作、账号、权限和长期云端存储会放到后续版本。
+
+## Contributing / 一起构建
+
+Ideas, issues, workflow feedback, and pull requests are welcome. This project is especially open to people who are building products, games, tools, agents, or research-heavy workflows and want a lightweight personal workspace.
+
+欢迎提交想法、Issue、工作流反馈和 Pull Request。这个项目特别欢迎正在做产品、游戏、工具、Agent 或研究型项目的人一起参与。
+
+Good contribution directions:
+
+- Better canvas workflows.
+- 更好的画布工作流。
+- Better screenshot and asset organization.
+- 更好的截图和资产管理。
+- API integrations for AI analysis and data sync.
+- AI 分析和数据同步 API 接入。
+- Cleaner templates for product research, game design, and interaction analysis.
+- 更清晰的产品研究、游戏设计、交互分析模板。
+
+## Contributors / 贡献者
+
+| Contributor | Role |
+| --- | --- |
+| Qiuyi Ye / 11-lilyye | Creator, product direction, workflow design |
+| Codex | AI coding collaborator, implementation support, documentation help |
+
+## License / 许可
+
+The license is not finalized yet. This repository is currently shared as a public MVP for learning, feedback, and early collaboration.
+
+许可暂时还没有最终确定。当前仓库先作为公共 MVP，用于学习、反馈和早期协作。
 
 ## Local Development / 本地开发
 
