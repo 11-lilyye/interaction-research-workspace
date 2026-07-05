@@ -66,16 +66,26 @@ Later API integrations can support:
 - 通过 Supabase 等数据库做云端同步。
 - 团队共享、只读链接和长期项目数据保存。
 
-## Run
+## Local Development / 本地开发
+
+These commands are only for developers who want to run or modify the project on their own computer. If you only want to use the online demo, open the live site above.
+
+下面这些命令只给想在自己电脑运行或修改代码的开发者使用。如果只是体验在线版本，直接打开上面的 Live site 就可以。
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173/`.
+Then open `http://127.0.0.1:5173/`.
 
-## Build
+然后打开 `http://127.0.0.1:5173/`。
+
+## Production Build / 部署构建
+
+This command checks the code and creates the static files used by Netlify or GitHub Pages.
+
+这个命令会检查代码，并生成 Netlify 或 GitHub Pages 用来部署的静态网页文件。
 
 ```bash
 npm run build
