@@ -26,14 +26,6 @@ GitHub Pages: https://11-lilyye.github.io/interaction-research-workspace/
 
 [Open full-size overview screenshot](docs/media/overview.png)
 
-### Excalidraw Canvas
-
-![Canvas workspace](docs/media/canvas.png)
-
-### AI Partner and Libraries
-
-![Libraries panel](docs/media/libraries.png)
-
 ## What works in this version
 
 - Project Mission Control: track stage, biggest question, daily tasks, completed tasks, recent boards, and open-source tools.
