@@ -103,9 +103,9 @@ Good contribution directions:
 
 ## License / 许可
 
-The license is not finalized yet. This repository is currently shared as a public MVP for learning, feedback, and early collaboration.
+This project is released under the MIT License.
 
-许可暂时还没有最终确定。当前仓库先作为公共 MVP，用于学习、反馈和早期协作。
+本项目使用 MIT License 开源。
 
 ## Local Development / 本地开发
 
