@@ -186,6 +186,8 @@
 .board-edit-panel button,
 .trash-row button,
 .project-board-add,
+.project-collapse-toggle,
+.project-move-actions button,
 .project-board-list button,
 .project-list-head button,
 .board-add,
@@ -260,17 +262,71 @@
 
 .project-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 28px;
+  grid-template-columns: 18px minmax(0, 1fr) auto 28px;
   align-items: center;
   gap: 4px;
+}
+
+.project-collapse-toggle {
+  width: 18px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+}
+
+.project-collapse-toggle:hover {
+  color: #0a806a;
 }
 
 .project-item {
   justify-content: flex-start;
   min-height: 32px;
-  padding: 0 10px;
+  min-width: 0;
+  padding: 0 4px;
   border: 0;
   background: transparent;
+}
+
+.project-item strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-move-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.project-row:hover .project-move-actions,
+.project-group:focus-within .project-move-actions {
+  opacity: 1;
+}
+
+.project-move-actions button {
+  width: 22px;
+  min-height: 24px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: #94a3b8;
+}
+
+.project-move-actions button:not(:disabled):hover {
+  border-color: #c9e8df;
+  background: #edf8f4;
+  color: #0a806a;
+}
+
+.project-move-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.32;
 }
 
 .project-board-add {
@@ -352,6 +408,7 @@
 }
 
 .project-dot {
+  flex: 0 0 auto;
   width: 10px;
   height: 10px;
   border-radius: 999px;
@@ -360,7 +417,7 @@
 .project-board-list {
   display: grid;
   gap: 3px;
-  padding-left: 22px;
+  padding-left: 40px;
 }
 
 .project-board-entry {
@@ -446,7 +503,7 @@
 }
 
 .board-trash {
-  margin-left: 22px;
+  margin-left: 40px;
   padding: 7px;
   border: 1px dashed #dbe4ee;
   border-radius: 8px;

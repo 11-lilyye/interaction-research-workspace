@@ -6,9 +6,13 @@ import { CaptureUpdateAction } from '@excalidraw/excalidraw'
 import type { BinaryFileData, ExcalidrawImperativeAPI, LibraryItems } from '@excalidraw/excalidraw/types'
 import type { ExcalidrawElement, FileId } from '@excalidraw/excalidraw/element/types'
 import {
+  ArrowDown,
   ArrowRight,
+  ArrowUp,
   BookOpen,
   Bot,
+  ChevronDown,
+  ChevronRight,
   CheckCircle2,
   ClipboardList,
   CircleDot,
@@ -164,6 +168,8 @@ const copy = {
     libraryLoading: 'Loading public libraries...',
     libraryItems: 'library items',
     maxQuestionPlaceholder: 'Fill in the biggest design question',
+    moveProjectDown: 'Move project down',
+    moveProjectUp: 'Move project up',
     myLibrary: 'My Library',
     newCanvas: 'New Canvas',
     noUpdates: 'No updates',
@@ -190,6 +196,8 @@ const copy = {
     selectAsset: 'Select a UI asset',
     selectAssetHint: 'Pick a screenshot or link to rename it and write analysis.',
     selectAll: 'Select all',
+    showBoards: 'Show boards',
+    hideBoards: 'Hide boards',
     searchLibraries: 'Search libraries...',
     stageHint: 'Click the project evolution tree below to update the current stage.',
     todayAddedNodes: 'Added Nodes Today',
@@ -268,6 +276,8 @@ const copy = {
     libraryLoading: '正在加载公共素材库...',
     libraryItems: '个素材',
     maxQuestionPlaceholder: '填写当前最大设计问题',
+    moveProjectDown: '项目下移',
+    moveProjectUp: '项目上移',
     myLibrary: '我的素材库',
     newCanvas: '新建画布',
     noUpdates: '暂无更新',
@@ -294,6 +304,8 @@ const copy = {
     selectAsset: '选择一个 UI 资产',
     selectAssetHint: '选择截图或链接后，可以重命名并编写分析。',
     selectAll: '全选',
+    showBoards: '展开画布',
+    hideBoards: '折叠画布',
     searchLibraries: '搜索素材库...',
     stageHint: '点击下方项目进化树即可更新当前阶段。',
     todayAddedNodes: '新增节点（今日）',
@@ -1110,6 +1122,7 @@ function ProjectRail({
   onHidePanel,
   onOpenBoardMenu,
   onModeChange,
+  onMoveProject,
   onRenameBoard,
   onRenameProject,
   onRestoreBoard,
@@ -1130,6 +1143,7 @@ function ProjectRail({
   onHidePanel: () => void
   onOpenBoardMenu: (event: MouseEvent, projectId: string, boardId: string) => void
   onModeChange: (mode: 'overview' | 'canvas') => void
+  onMoveProject: (projectId: string, direction: -1 | 1) => void
   onRenameBoard: (projectId: string, boardId: string, name: string) => void
   onRenameProject: (projectId: string, name: string) => void
   onRestoreBoard: (projectId: string, boardId: string) => void
@@ -1143,6 +1157,19 @@ function ProjectRail({
   const [projectNameDraft, setProjectNameDraft] = useState('')
   const [editingBoardId, setEditingBoardId] = useState<string>()
   const [boardNameDraft, setBoardNameDraft] = useState('')
+  const [collapsedProjectIds, setCollapsedProjectIds] = useState<Set<string>>(() => new Set())
+
+  const toggleProjectBoards = (projectId: string) => {
+    setCollapsedProjectIds((current) => {
+      const next = new Set(current)
+      if (next.has(projectId)) {
+        next.delete(projectId)
+      } else {
+        next.add(projectId)
+      }
+      return next
+    })
+  }
 
   const startEditingProject = (project: Project) => {
     setEditingProjectId(project.id)
@@ -1232,9 +1259,20 @@ function ProjectRail({
       </div>
 
       <div className="project-list">
-        {projects.map((project, index) => (
-          <div className={`project-group ${activeProjectId === project.id ? 'active' : ''}`} key={project.id}>
+        {projects.map((project, index) => {
+          const isCollapsed = collapsedProjectIds.has(project.id)
+
+          return (
+          <div className={`project-group ${activeProjectId === project.id ? 'active' : ''} ${isCollapsed ? 'collapsed' : ''}`} key={project.id}>
             <div className="project-row">
+              <button
+                aria-label={`${isCollapsed ? t.showBoards : t.hideBoards} ${project.name}`}
+                className="project-collapse-toggle"
+                onClick={() => toggleProjectBoards(project.id)}
+                type="button"
+              >
+                {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+              </button>
               <button
                 className="project-item"
                 onDoubleClick={() => startEditingProject(project)}
@@ -1244,6 +1282,24 @@ function ProjectRail({
                 <span className="project-dot" style={{ background: projectDots[index % projectDots.length] }} />
                 <strong>{project.name}</strong>
               </button>
+              <div className="project-move-actions" aria-label={`${project.name} order`}>
+                <button
+                  aria-label={`${t.moveProjectUp} ${project.name}`}
+                  disabled={index === 0}
+                  onClick={() => onMoveProject(project.id, -1)}
+                  type="button"
+                >
+                  <ArrowUp size={12} />
+                </button>
+                <button
+                  aria-label={`${t.moveProjectDown} ${project.name}`}
+                  disabled={index === projects.length - 1}
+                  onClick={() => onMoveProject(project.id, 1)}
+                  type="button"
+                >
+                  <ArrowDown size={12} />
+                </button>
+              </div>
               <button
                 aria-label={`${t.addCanvas} ${project.name}`}
                 className="project-board-add"
@@ -1282,6 +1338,7 @@ function ProjectRail({
                 </div>
               </div>
             ) : null}
+            {!isCollapsed ? (
             <div className="project-board-list">
               {activeBoardsOf(project).map((board) => (
                 <div className="project-board-entry" key={board.id}>
@@ -1327,7 +1384,8 @@ function ProjectRail({
                 </div>
               ))}
             </div>
-            {deletedBoardsOf(project).length ? (
+            ) : null}
+            {!isCollapsed && deletedBoardsOf(project).length ? (
               <details className="board-trash">
                 <summary>{t.trash} · {deletedBoardsOf(project).length}</summary>
                 {deletedBoardsOf(project).map((board) => (
@@ -1342,7 +1400,8 @@ function ProjectRail({
               </details>
             ) : null}
           </div>
-        ))}
+          )
+        })}
       </div>
 
       <div className="user-profile">
@@ -2661,6 +2720,17 @@ function App() {
     )))
   }
 
+  const moveProject = (projectId: string, direction: -1 | 1) => {
+    const currentIndex = state.projects.findIndex((project) => project.id === projectId)
+    const nextIndex = currentIndex + direction
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= state.projects.length) return
+
+    const nextProjects = [...state.projects]
+    const [project] = nextProjects.splice(currentIndex, 1)
+    nextProjects.splice(nextIndex, 0, project)
+    updateProjects(nextProjects)
+  }
+
   const deleteProject = (projectId: string) => {
     if (state.projects.length <= 1) return
 
@@ -3403,6 +3473,7 @@ function App() {
           onDeleteBoardForever={deleteBoardForever}
           onHidePanel={() => setIsProjectPanelOpen(false)}
           onModeChange={setMode}
+          onMoveProject={moveProject}
           onOpenBoardMenu={openBoardMenu}
           onRenameBoard={renameBoard}
           onRenameProject={renameProject}
