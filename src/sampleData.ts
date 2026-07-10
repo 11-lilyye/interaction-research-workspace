@@ -1,4 +1,5 @@
 import type { Project } from './types'
+import { alphaCompassArchitectureCanvas } from './alphaCompassArchitecture'
 
 const now = new Date().toISOString()
 
@@ -6,7 +7,12 @@ const defaultBoards = (prefix: string) => [
   { id: `${prefix}-opportunity`, name: 'Opportunity', canvas: { elements: [], files: {} }, updatedAt: now },
   { id: `${prefix}-research-flow`, name: 'Research Flow', canvas: { elements: [], files: {} }, updatedAt: now },
   { id: `${prefix}-evidence`, name: 'Evidence', canvas: { elements: [], files: {} }, updatedAt: now },
-  { id: `${prefix}-ui`, name: 'UI', canvas: { elements: [], files: {} }, updatedAt: now },
+  {
+    id: `${prefix}-ui`,
+    name: 'UI',
+    canvas: prefix === 'alpha-compass' ? alphaCompassArchitectureCanvas : { elements: [], files: {} },
+    updatedAt: now,
+  },
 ]
 
 const blankAnalysis = {
@@ -23,7 +29,7 @@ export const seedProjects: Project[] = [
     id: 'alpha-compass',
     name: 'Alpha Compass',
     type: 'Product research',
-    activeBoardId: 'alpha-compass-opportunity',
+    activeBoardId: 'alpha-compass-ui',
     currentStage: 'Research',
     stageUpdatedAt: now,
     biggestQuestion: {

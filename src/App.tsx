@@ -37,6 +37,8 @@ import {
 } from 'lucide-react'
 import './App.css'
 import { seedProjects } from './sampleData'
+import { alphaCompassArchitectureCanvas, hasAlphaCompassArchitecture } from './alphaCompassArchitecture'
+import { isCloudWorkspaceEnabled, loadCloudWorkspace, saveCloudWorkspace } from './workspaceCloud'
 import type {
   Analysis,
   Board,
@@ -51,14 +53,12 @@ import type {
   ProjectTask,
   ProjectTool,
   ResearchAsset,
+  WorkspaceState,
 } from './types'
 
 const storageKey = 'interaction-research-library:v1'
 const overviewCardWidthStorageKey = 'interaction-research-library:overview-card-widths:v1'
 const workspaceWindowName = 'interaction-research-workspace'
-type WorkspaceState = {
-  projects: Project[]
-}
 
 type Language = 'en' | 'zh'
 
@@ -107,6 +107,12 @@ type ToastMessage = {
   message: string
 }
 
+type CloudSyncStatus = {
+  enabled: boolean
+  status: 'local' | 'loading' | 'saving' | 'synced' | 'error'
+  updatedAt?: string
+}
+
 const copy = {
   en: {
     addProject: 'Add project',
@@ -132,6 +138,11 @@ const copy = {
     comments: 'Comments',
     completedTasks: 'Completed Tasks',
     copiedReadOnlyLink: 'Read-only link copied',
+    cloudError: 'Cloud save failed',
+    cloudLoading: 'Loading cloud',
+    cloudLocalOnly: 'Local only',
+    cloudSaving: 'Saving cloud',
+    cloudSynced: 'Cloud synced',
     current: 'Current',
     currentStage: 'Current Stage',
     delete: 'Delete',
@@ -189,6 +200,7 @@ const copy = {
     share: 'Share',
     shareLink: 'Share link',
     settings: 'Settings',
+    saveCloud: 'Save cloud',
     showLibraryPanel: 'Show AI panel',
     showProjectPanel: 'Show project panel',
     selectedAsset: 'Selected asset',
@@ -240,6 +252,11 @@ const copy = {
     comments: '评论',
     completedTasks: '已完成任务',
     copiedReadOnlyLink: '已复制只读链接',
+    cloudError: '云端保存失败',
+    cloudLoading: '读取云端',
+    cloudLocalOnly: '仅本地',
+    cloudSaving: '保存云端',
+    cloudSynced: '已同步云端',
     current: '当前',
     currentStage: '当前阶段',
     delete: '删除',
@@ -297,6 +314,7 @@ const copy = {
     share: '分享',
     shareLink: '复制只读链接',
     settings: '设置',
+    saveCloud: '保存云端',
     showLibraryPanel: '显示 AI 面板',
     showProjectPanel: '显示项目栏',
     selectedAsset: '已选资产',
@@ -653,6 +671,29 @@ const deletedBoardsOf = (project: Project) => project.boards.filter((board) => b
 
 const firstActiveBoardOf = (project: Project) => activeBoardsOf(project)[0] ?? project.boards[0]
 
+const ensureAlphaCompassArchitecture = (projectId: string, boards: Board[]) => {
+  if (projectId !== 'alpha-compass') return boards
+
+  return boards.map((board) => {
+    if (board.id !== 'alpha-compass-ui' || hasAlphaCompassArchitecture(board.canvas)) return board
+
+    return {
+      ...board,
+      canvas: {
+        elements: [
+          ...alphaCompassArchitectureCanvas.elements,
+          ...board.canvas.elements,
+        ],
+        files: {
+          ...alphaCompassArchitectureCanvas.files,
+          ...board.canvas.files,
+        },
+      },
+      updatedAt: new Date().toISOString(),
+    }
+  })
+}
+
 const normalizeProject = (project: Project): Project => {
   const boards = project.boards?.length
     ? project.boards
@@ -663,10 +704,15 @@ const normalizeProject = (project: Project): Project => {
       }))
     : createDefaultBoards(project.id, project.canvas)
   const activeBoards = boards.filter((board) => !board.deletedAt)
-  const normalizedBoards = activeBoards.length ? boards : createDefaultBoards(project.id, project.canvas)
+  const normalizedBoards = ensureAlphaCompassArchitecture(
+    project.id,
+    activeBoards.length ? boards : createDefaultBoards(project.id, project.canvas),
+  )
   const activeBoardId = normalizedBoards.some((board) => board.id === project.activeBoardId && !board.deletedAt)
     ? project.activeBoardId
-    : normalizedBoards.find((board) => !board.deletedAt)?.id
+    : project.id === 'alpha-compass'
+      ? 'alpha-compass-ui'
+      : normalizedBoards.find((board) => !board.deletedAt)?.id
   const currentStage = normalizeStage(project.currentStage)
   const stageStatuses = createStageStatuses(currentStage, project.stageStatuses)
   const tools = (project.tools ?? []).map((tool) => {
@@ -1074,38 +1120,127 @@ const createScreenshotAsset = (element: ExcalidrawElement, files: BinaryFiles): 
   }
 }
 
-function useWorkspaceState(): [WorkspaceState, (next: WorkspaceState) => void] {
-  const [state, setState] = useState<WorkspaceState>(() => {
-    const saved = window.localStorage.getItem(storageKey)
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as WorkspaceState
-        if (!parsed.projects?.length) {
-          window.localStorage.removeItem(storageKey)
-          return { projects: seedProjects.map(normalizeProject) }
-        }
-        return {
-          ...parsed,
-          projects: parsed.projects.map(normalizeProject),
-        }
-      } catch {
-        window.localStorage.removeItem(storageKey)
-      }
-    }
+const createSeedWorkspaceState = (): WorkspaceState => ({
+  projects: seedProjects.map(normalizeProject),
+})
 
-    return { projects: seedProjects.map(normalizeProject) }
+const normalizeWorkspaceState = (workspaceState: WorkspaceState): WorkspaceState => ({
+  ...workspaceState,
+  projects: workspaceState.projects.map(normalizeProject),
+})
+
+function useWorkspaceState(): [WorkspaceState, (next: WorkspaceState) => void, CloudSyncStatus, () => Promise<void>] {
+  const [state, setState] = useState<WorkspaceState>(createSeedWorkspaceState)
+  const [cloudSync, setCloudSync] = useState<CloudSyncStatus>({
+    enabled: isCloudWorkspaceEnabled,
+    status: isCloudWorkspaceEnabled ? 'loading' : 'local',
   })
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!isCloudWorkspaceEnabled) return undefined
+
+    loadCloudWorkspace()
+      .then((cloudState) => {
+        if (cancelled) return
+
+        if (!cloudState?.projects?.length) {
+          setCloudSync({
+            enabled: true,
+            status: 'synced',
+            updatedAt: new Date().toISOString(),
+          })
+          return
+        }
+
+        const normalizedCloudState = normalizeWorkspaceState(cloudState)
+        setState(normalizedCloudState)
+        setCloudSync({
+          enabled: true,
+          status: 'synced',
+          updatedAt: new Date().toISOString(),
+        })
+      })
+      .catch((error) => {
+        console.warn('Could not load cloud workspace.', error)
+        setCloudSync({
+          enabled: true,
+          status: 'error',
+          updatedAt: new Date().toISOString(),
+        })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const save = (next: WorkspaceState) => {
     setState(next)
-    safeWriteLocalStorage(storageKey, JSON.stringify(next))
+    if (!isCloudWorkspaceEnabled) {
+      setCloudSync({
+        enabled: false,
+        status: 'local',
+      })
+      return
+    }
+
+    setCloudSync({
+      enabled: true,
+      status: 'saving',
+      updatedAt: new Date().toISOString(),
+    })
+    saveCloudWorkspace(next)
+      .then(() => {
+        setCloudSync({
+          enabled: true,
+          status: 'synced',
+          updatedAt: new Date().toISOString(),
+        })
+      })
+      .catch((error) => {
+        console.warn('Could not save cloud workspace.', error)
+        setCloudSync({
+          enabled: true,
+          status: 'error',
+          updatedAt: new Date().toISOString(),
+        })
+      })
   }
 
-  useEffect(() => {
-    safeWriteLocalStorage(storageKey, JSON.stringify(state))
-  }, [state])
+  const saveCloudNow = async () => {
+    if (!isCloudWorkspaceEnabled) {
+      setCloudSync({
+        enabled: false,
+        status: 'local',
+      })
+      return
+    }
 
-  return [state, save]
+    setCloudSync({
+      enabled: true,
+      status: 'saving',
+      updatedAt: new Date().toISOString(),
+    })
+    try {
+      await saveCloudWorkspace(state)
+      setCloudSync({
+        enabled: true,
+        status: 'synced',
+        updatedAt: new Date().toISOString(),
+      })
+    } catch (error) {
+      console.warn('Could not save cloud workspace.', error)
+      setCloudSync({
+        enabled: true,
+        status: 'error',
+        updatedAt: new Date().toISOString(),
+      })
+    }
+  }
+
+  return [state, save, cloudSync, saveCloudNow]
 }
 
 function ProjectRail({
@@ -1417,23 +1552,37 @@ function ProjectRail({
 }
 
 function TopBar({
+  cloudSync,
   language,
   isReadOnly,
   project,
   onCreateBoard,
   onExportJson,
   onExportPng,
+  onSaveCloud,
   onShareLink,
 }: {
+  cloudSync: CloudSyncStatus
   language: Language
   isReadOnly: boolean
   project: Project
   onCreateBoard: () => void
   onExportJson: () => void
   onExportPng: () => void
+  onSaveCloud: () => void
   onShareLink: () => void
 }) {
   const t = copy[language]
+  const cloudLabel = cloudSync.status === 'loading'
+    ? t.cloudLoading
+    : cloudSync.status === 'saving'
+      ? t.cloudSaving
+      : cloudSync.status === 'synced'
+        ? t.cloudSynced
+        : cloudSync.status === 'error'
+          ? t.cloudError
+          : t.cloudLocalOnly
+
   return (
     <header className="top-bar">
       <div>
@@ -1443,6 +1592,15 @@ function TopBar({
 
       <div className="top-actions">
         {isReadOnly ? <span className="read-only-pill">{t.readOnly}</span> : null}
+        <button
+          className={`cloud-sync-pill ${cloudSync.status}`}
+          disabled={isReadOnly || cloudSync.status === 'saving' || cloudSync.status === 'loading'}
+          onClick={onSaveCloud}
+          type="button"
+        >
+          <Globe2 size={15} />
+          {cloudLabel}
+        </button>
         <button onClick={onShareLink} type="button">
           <Share2 size={15} />
           {t.shareLink}
@@ -2077,6 +2235,15 @@ function AIPartnerPanel({
 
   const deleteSelectedLibraryItems = () => {
     if (!selectedLibraryItemIds.length || isReadOnly) return
+    const selectedNames = selectedLibraryItems.map((item, index) =>
+      item.name || (language === 'en' ? `Library item ${index + 1}` : `素材 ${index + 1}`)
+    )
+    const confirmed = window.confirm(
+      language === 'en'
+        ? `Delete ${selectedNames.length} selected library item(s)?\n\n${selectedNames.join('\n')}`
+        : `确认删除 ${selectedNames.length} 个已选素材？\n\n${selectedNames.join('\n')}`,
+    )
+    if (!confirmed) return
     onDeleteLibraryItems(selectedLibraryItemIds)
     setSelectedLibraryItemIds([])
   }
@@ -2335,18 +2502,33 @@ function AIPartnerPanel({
               </button>
               <button className="danger" disabled={isReadOnly || !selectedLibraryItemIds.length} onClick={deleteSelectedLibraryItems} type="button">
                 <Trash2 size={13} />
-                {t.deleteSelected} {selectedLibraryItemIds.length ? selectedLibraryItemIds.length : ''}
+                {t.deleteSelected}{selectedLibraryItemIds.length ? ` (${selectedLibraryItemIds.length})` : ''}
               </button>
             </div>
+            {selectedLibraryItems.length ? (
+              <div className="library-selection-banner">
+                <strong>{language === 'en' ? `${selectedLibraryItems.length} selected` : `已选择 ${selectedLibraryItems.length} 个`}</strong>
+                <span>
+                  {selectedLibraryItems
+                    .slice(0, 3)
+                    .map((item, index) => item.name || (language === 'en' ? `Library item ${index + 1}` : `素材 ${index + 1}`))
+                    .join('、')}
+                  {selectedLibraryItems.length > 3 ? (language === 'en' ? '...' : ' 等') : ''}
+                </span>
+              </div>
+            ) : null}
             <div className="my-library-list">
               {libraryItems.map((item, index) => (
-                <label className="my-library-item" key={item.id}>
+                <label className={`my-library-item ${selectedLibraryItemIds.includes(item.id) ? 'selected' : ''}`} key={item.id}>
                   <input checked={selectedLibraryItemIds.includes(item.id)} disabled={isReadOnly} onChange={() => toggleLibraryItem(item.id)} type="checkbox" />
                   <span>{index + 1}</span>
                   <div>
                     <strong>{item.name || (language === 'en' ? `Library item ${index + 1}` : `素材 ${index + 1}`)}</strong>
                     <p>{item.elements.length} {language === 'en' ? 'elements' : '个元素'}{item.status ? ` · ${item.status}` : ''}</p>
                   </div>
+                  {selectedLibraryItemIds.includes(item.id) ? (
+                    <em>{language === 'en' ? 'Selected' : '已选'}</em>
+                  ) : null}
                 </label>
               ))}
               {!libraryItems.length ? <p className="empty-copy">{t.noLibraryItems}</p> : null}
@@ -2502,7 +2684,7 @@ function ExcalidrawCanvas({
 }
 
 function App() {
-  const [state, saveState] = useWorkspaceState()
+  const [state, saveState, cloudSync, saveCloudNow] = useWorkspaceState()
   const [activeProjectId, setActiveProjectId] = useState(() => {
     const requestedProjectId = new URLSearchParams(window.location.search).get('project')
     return state.projects.some((project) => project.id === requestedProjectId)
@@ -3511,11 +3693,13 @@ function App() {
 
       <section className="workspace">
         <TopBar
+          cloudSync={cloudSync}
           isReadOnly={isReadOnly}
           language={language}
           onCreateBoard={() => createBoard(activeProject.id)}
           onExportJson={exportCurrentBoardJson}
           onExportPng={() => void exportCurrentBoardPng()}
+          onSaveCloud={() => void saveCloudNow()}
           onShareLink={() => void shareReadOnlyLink()}
           project={activeProject}
         />

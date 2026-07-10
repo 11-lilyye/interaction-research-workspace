@@ -42,6 +42,10 @@ export type Project = {
   libraryItems?: LibraryItems
 }
 
+export type WorkspaceState = {
+  projects: Project[]
+}
+
 export type Board = {
   id: string
   name: string
