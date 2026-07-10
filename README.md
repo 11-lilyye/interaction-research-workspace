@@ -38,8 +38,8 @@ GitHub Pages: https://11-lilyye.github.io/interaction-research-workspace/
 - 资产与素材库：截图、链接、外部 Excalidraw 素材都可以围绕当前画布使用。
 - AI Partner panel: first version uses local mock analysis; later it can connect to real APIs.
 - AI 伙伴面板：第一版先做本地模拟分析，后续可以接真实 API。
-- Cloud-first workspace persistence through Supabase when configured.
-- 配置 Supabase 后，项目数据优先保存到云端，不再把项目内容写入浏览器 `localStorage`。
+- Cloud-first workspace persistence through Netlify Blobs, with Supabase available as an optional future backend.
+- 项目数据优先保存到 Netlify Blobs 云端，不再把项目内容写入浏览器 `localStorage`。
 
 ## Who it is for
 
@@ -122,15 +122,15 @@ Then open `http://127.0.0.1:5173/`.
 
 然后打开 `http://127.0.0.1:5173/`。
 
-## Supabase Cloud Sync / Supabase 云端同步
+## Cloud Sync / 云端同步
 
-The workspace can save the full project studio state to Supabase. This is the V1 cloud-first path: project data lives in Supabase when the environment variables are configured. Without Supabase configuration, the app runs as a temporary demo workspace and should not be treated as persistent storage.
+The workspace saves the full project studio state through the Netlify Function at `/api/workspace`, backed by Netlify Blobs. This is the V1 cloud-first path: project data lives in Netlify's cloud storage after deployment, while the browser only keeps the current in-memory session.
 
-工作台现在可以把完整项目状态保存到 Supabase。这是 V1 云端优先路线：配置环境变量后，项目数据保存在 Supabase。没有配置 Supabase 时，应用只作为临时 demo 工作台运行，不应该当成长期存储。
+工作台会通过 `/api/workspace` 这个 Netlify Function 保存完整项目状态，底层使用 Netlify Blobs。这是 V1 云端优先路线：部署后项目数据保存在 Netlify 云端，浏览器只保留当前页面运行时的临时状态。
 
-1. Create a Supabase project.
-2. Run `docs/supabase-workspace-schema.sql` in the Supabase SQL editor.
-3. Add these environment variables in Netlify:
+Optional Supabase mode is still supported by setting these environment variables:
+
+如果以后想切到 Supabase，也可以配置这些环境变量：
 
 ```bash
 VITE_SUPABASE_URL=https://your-project.supabase.co
@@ -140,7 +140,9 @@ VITE_WORKSPACE_ID=alpha-compass-studio
 
 `VITE_WORKSPACE_ID` is optional. It lets you separate different personal workspaces in the same table.
 
-第一版策略是整包 JSONB 同步，适合个人工作台快速进入 V1。后续 Alpha Compass 投研产品本身的数据库应该再拆成 `entities`、`relationships`、`evidence`、`assets`、`research_queue`、`simulations` 等结构化表。
+`VITE_WORKSPACE_ID` is optional. It lets you separate different personal workspaces.
+
+第一版策略是整包 JSON 同步，适合个人工作台快速进入 V1。后续 Alpha Compass 投研产品本身的数据库应该再拆成 `entities`、`relationships`、`evidence`、`assets`、`research_queue`、`simulations` 等结构化表。
 
 ## Production Build / 部署构建
 

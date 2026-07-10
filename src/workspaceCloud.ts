@@ -12,7 +12,9 @@ const workspaceId = import.meta.env.VITE_WORKSPACE_ID || 'personal-workspace'
 
 const tableName = 'workspace_states'
 
-export const isCloudWorkspaceEnabled = Boolean(supabaseUrl && supabaseAnonKey)
+const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey)
+
+export const isCloudWorkspaceEnabled = true
 
 const cloudHeaders = () => ({
   apikey: supabaseAnonKey ?? '',
@@ -24,7 +26,16 @@ const workspaceUrl = () =>
   `${supabaseUrl}/rest/v1/${tableName}?id=eq.${encodeURIComponent(workspaceId)}&select=id,payload,updated_at&limit=1`
 
 export const loadCloudWorkspace = async () => {
-  if (!isCloudWorkspaceEnabled || !supabaseUrl) return null
+  if (!hasSupabaseConfig || !supabaseUrl) {
+    const response = await fetch(`/api/workspace?id=${encodeURIComponent(workspaceId)}`)
+
+    if (!response.ok) {
+      throw new Error(`Cloud workspace load failed: ${response.status}`)
+    }
+
+    const data = await response.json() as { payload?: WorkspaceState | null }
+    return data.payload ?? null
+  }
 
   const response = await fetch(workspaceUrl(), {
     headers: cloudHeaders(),
@@ -39,7 +50,24 @@ export const loadCloudWorkspace = async () => {
 }
 
 export const saveCloudWorkspace = async (state: WorkspaceState) => {
-  if (!isCloudWorkspaceEnabled || !supabaseUrl) return false
+  if (!hasSupabaseConfig || !supabaseUrl) {
+    const response = await fetch('/api/workspace', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: workspaceId,
+        payload: state,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Cloud workspace save failed: ${response.status}`)
+    }
+
+    return true
+  }
 
   const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}?on_conflict=id`, {
     method: 'POST',
