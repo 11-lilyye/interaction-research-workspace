@@ -1129,6 +1129,21 @@ const normalizeWorkspaceState = (workspaceState: WorkspaceState): WorkspaceState
   projects: workspaceState.projects.map(normalizeProject),
 })
 
+const readLegacyLocalWorkspaceState = (): WorkspaceState | null => {
+  try {
+    const savedState = window.localStorage.getItem(storageKey)
+    if (!savedState) return null
+
+    const parsedState = JSON.parse(savedState) as WorkspaceState
+    if (!parsedState?.projects?.length) return null
+
+    return normalizeWorkspaceState(parsedState)
+  } catch (error) {
+    console.warn('Could not read legacy local workspace.', error)
+    return null
+  }
+}
+
 function useWorkspaceState(): [WorkspaceState, (next: WorkspaceState) => void, CloudSyncStatus, () => Promise<void>] {
   const [state, setState] = useState<WorkspaceState>(createSeedWorkspaceState)
   const [cloudSync, setCloudSync] = useState<CloudSyncStatus>({
@@ -1142,10 +1157,40 @@ function useWorkspaceState(): [WorkspaceState, (next: WorkspaceState) => void, C
     if (!isCloudWorkspaceEnabled) return undefined
 
     loadCloudWorkspace()
-      .then((cloudState) => {
+      .then(async (cloudState) => {
         if (cancelled) return
 
         if (!cloudState?.projects?.length) {
+          const legacyLocalState = readLegacyLocalWorkspaceState()
+          if (legacyLocalState?.projects.length) {
+            setState(legacyLocalState)
+            setCloudSync({
+              enabled: true,
+              status: 'saving',
+              updatedAt: new Date().toISOString(),
+            })
+
+            try {
+              await saveCloudWorkspace(legacyLocalState)
+              if (cancelled) return
+              window.localStorage.removeItem(storageKey)
+              setCloudSync({
+                enabled: true,
+                status: 'synced',
+                updatedAt: new Date().toISOString(),
+              })
+            } catch (error) {
+              console.warn('Could not migrate legacy local workspace.', error)
+              if (cancelled) return
+              setCloudSync({
+                enabled: true,
+                status: 'error',
+                updatedAt: new Date().toISOString(),
+              })
+            }
+            return
+          }
+
           setCloudSync({
             enabled: true,
             status: 'synced',
