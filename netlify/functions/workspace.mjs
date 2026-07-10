@@ -1,4 +1,4 @@
-import { getStore } from '@netlify/blobs'
+import { connectLambda, getStore } from '@netlify/blobs'
 
 const json = (statusCode, body) => ({
   statusCode,
@@ -13,6 +13,7 @@ const workspaceKey = (id = 'personal-workspace') =>
   `workspace:${String(id).replace(/[^a-zA-Z0-9._:-]/g, '-')}`
 
 export const handler = async (event) => {
+  connectLambda(event)
   const store = getStore('interaction-research-workspaces')
 
   if (event.httpMethod === 'GET') {
